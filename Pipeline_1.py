@@ -5,7 +5,7 @@ import sys
 import subprocess
 import time
 import re
-import pathlib
+from pathlib import Path
 
 Dir = '/scratch/alpine/fhasan1@xsede.org/sra_python'
 
@@ -22,17 +22,11 @@ with open(BLASTNucleotide, 'r') as BLASTN:
             Array = line.split('\t')
             print(f"{Array[0]} ", end='')
             
-            pattern = "*" + Array[0] + "*"
-            try:
-                folder_check = subprocess.run(["find", Dir, "-maxdepth", "1", "-type", "d", "-name", pattern], capture_output = True, text = True)
-                if folder_check != "":
-                    print(f"{Array[0]} folder exists!")
-                    continue
-                else:
-                    pass
-            except subprocess.CalledProcessError as e:
-                print(e, "Failed at existing folder check.", Array[0])
+            if Path(Dir + '/' + Array[0] + '_1.fastq_out_noMatch_1.fq_out/final.contigs.fa').is_file():
+                print("folder exists")
                 continue
+            else:
+                pass
 
             Output = Dir
             pe_item = Output + '/' + Array[0] + '_1.fastq'
@@ -52,8 +46,8 @@ with open(BLASTNucleotide, 'r') as BLASTN:
             start_time_bf = time.time()
             if Path(pe_item).is_file():
                 item_out = pe_item + "_out"
-                item2 = re.sub("_1", "_2", item)
-                my_bf_cmd = ["biobloomcategorizer", "-d", "-n", "-t", sys.argv[4], "-e", "-p", item_out, "-f", sys.argv[5], item, item2]
+                item2 = re.sub("_1", "_2", pe_item)
+                my_bf_cmd = ["biobloomcategorizer", "-d", "-n", "-t", sys.argv[4], "-e", "-p", item_out, "-f", sys.argv[5], pe_item, item2]
                 item_bloom = item_out + "noMatch_1.fq"
                 awk_cmd = ["awk", '{print > (int((NR-1)/4)%2==0 ? item_bloom : item_out + "noMatch_2.fq")}']
                 with subprocess.Popen(my_bf_cmd, stdout = subprocess.PIPE) as bf_out:
@@ -65,7 +59,7 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                         continue
             else:
                 item_out = se_item + "_out"
-                my_bf_cmd = ["biobloomcategorizer", "-d", "-n", "-t", sys.argv[4], "-p", item_out, "-f", sys.argv[5], item]
+                my_bf_cmd = ["biobloomcategorizer", "-d", "-n", "-t", sys.argv[4], "-p", item_out, "-f", sys.argv[5], se_item]
                 item_bloom = item_out + "noMatch.fq"
                 with open(item_bloom, "w") as f:
                     try:
@@ -77,17 +71,19 @@ with open(BLASTNucleotide, 'r') as BLASTN:
             runtime_bf = end_time_bf - start_time_bf
             print(runtime_bf, "Bloomfilter done")
             
-            my_sra_delete_cmd = ["rm", item]
+            if Path(pe_item).is_file():
+                my_sra_delete_cmd = ["rm", pe_item, item2]
+            else:
+                 my_sra_delete_cmd = ["rm", se_item]
             subprocess.run(my_sra_delete_cmd, check = True)
             print("SRA deleted")
 
     
-            item_megahit_out = item_bloom + "_out"
             if "noMatch_1" in item_bloom:
                 item_bloom_2 = re.sub("_1", "_2", item_bloom)
-                my_mh_cmd = ["megahit", "-1", item_bloom, "-2", item_bloom_2, "-o", item_megahit_out] 
+                my_mh_cmd = ["megahit", "-1", item_bloom, "-2", item_bloom_2, "-o", Array[0]] 
             else:    
-                my_mh_cmd = ["megahit", "-r", item_bloom, "-o", item_megahit_out] 
+                my_mh_cmd = ["megahit", "-r", item_bloom, "-o", Array[0]] 
             start_time_mh = time.time()
             try:
                 result_mh = subprocess.run(my_mh_cmd, capture_output = True, text = True, check = True)
@@ -99,7 +95,7 @@ with open(BLASTNucleotide, 'r') as BLASTN:
             print(runtime_mh, result_mh.stdout, result_mh.stderr, "Megahit done")
             
             
-            my_mh_delete_cmd = ["find", item_megahit_out + "/.", "-mindepth", "1", "-not", "-name", "final.contigs.fa", "-delete"]
+            my_mh_delete_cmd = ["find", Array[0] + "/.", "-mindepth", "1", "-not", "-name", "final.contigs.fa", "-delete"]
             subprocess.run(my_mh_delete_cmd)
             print("Pipeline part 1 done")
         j += 1
