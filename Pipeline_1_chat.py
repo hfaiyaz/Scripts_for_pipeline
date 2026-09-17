@@ -232,6 +232,43 @@ with open(BLASTNucleotide, 'r') as BLASTN:
             runtime_bf = end_time_bf - start_time_bf
 
             print(runtime_bf, "Bloomfilter done")
+            
+            # ==========================================================
+            # Remove bloom filter output that is larger than a 20% hit
+            # ==========================================================
+            
+            if Path(pe_item).is_file():
+                bloom_summary = "/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + "_1.fastq_out_summary.tsv"
+                with open(bloom_summary, "r") as bloomf:
+                    for line  in bloomf:
+                        if "noMatch" in line:
+                        line = line.strip().split("\t")
+                        print(accession, "noMatch rate:", line[4])
+                            if float(line[4]) > 0.2:
+                                rm_pattern = "./sra_python/" + accession + "*"
+                                my_bloom_delete_cmd =  ["rm", rm_pattern]
+                                try:
+                                    subprocess.run(my_bloom_delete_cmd, check = True)
+                                except subprocess.CalledProcessError as bloom_e:
+                                    print(bloom_e, "Warning: Bloom files largesr than 20% matches could not be deleted", accession)
+                                print("Bloom files larger than 20% matches deleted")
+            
+            else:
+                bloom_summary = "/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".fastq_out_summary.tsv"
+                with open(bloom_summary, "r") as bloomf:
+                    for line  in bloomf:
+                        if "noMatch" in line:
+                        line = line.strip().split("\t")
+                        print(accession, "noMatch rate:", line[4])
+                            if float(line[4]) > 0.2:
+                                rm_pattern = "./sra_python/" + accession + "*"
+                                my_bloom_delete_cmd =  ["rm", rm_pattern]
+                                try:
+                                    subprocess.run(my_bloom_delete_cmd, check = True)
+                                except subprocess.CalledProcessError as bloom_e:
+                                    print(bloom_e, "Warning: Bloom files largesr than 20% matches could not be deleted", accession)
+                                print("Bloom files larger than 20% matches deleted")
+                            
 
 
             # ==========================================================
@@ -273,8 +310,6 @@ with open(BLASTNucleotide, 'r') as BLASTN:
             print("SRA deleted")
             
             
-
-
             # ==========================================================
             # Remove incomplete MEGAHIT directory from previous attempt
             # ==========================================================
