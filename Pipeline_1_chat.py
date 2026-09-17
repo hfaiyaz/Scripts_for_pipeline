@@ -242,8 +242,8 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                 with open(bloom_summary, "r") as bloomf:
                     for line  in bloomf:
                         if "noMatch" in line:
-                        line = line.strip().split("\t")
-                        print(accession, "noMatch rate:", line[4])
+                            line = line.strip().split("\t")
+                            print(accession, "noMatch rate:", line[4])
                             if float(line[4]) > 0.2:
                                 rm_pattern = "./sra_python/" + accession + "*"
                                 my_bloom_delete_cmd =  ["rm", rm_pattern]
@@ -258,8 +258,8 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                 with open(bloom_summary, "r") as bloomf:
                     for line  in bloomf:
                         if "noMatch" in line:
-                        line = line.strip().split("\t")
-                        print(accession, "noMatch rate:", line[4])
+                            line = line.strip().split("\t")
+                            print(accession, "noMatch rate:", line[4])
                             if float(line[4]) > 0.2:
                                 rm_pattern = "./sra_python/" + accession + "*"
                                 my_bloom_delete_cmd =  ["rm", rm_pattern]
