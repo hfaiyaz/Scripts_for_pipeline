@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 
 import os
 import sys
@@ -7,6 +7,7 @@ import time
 import re
 import shutil
 from pathlib import Path
+import glob
 
 Dir = '/scratch/alpine/fhasan1@xsede.org/sra_python'
 
@@ -40,8 +41,25 @@ with open(BLASTNucleotide, 'r') as BLASTN:
 
             if final_contigs.is_file():
                 print("final.contigs.fa already exists")
+                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".*")
+                my_og_delete_cmd = ["rm"] + rm_pattern
+                try:
+                    subprocess.run(my_og_delete_cmd, check = True)
+                except subprocess.CalledProcessError as bloom_e:
+                    print(bloom_e, "Warning: Did not find files to delete", accession)
+                
                 j += 1
                 continue
+            
+            else:
+                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + "*")
+                my_og_delete_cmd = ["rm", "-r"] + rm_pattern
+                try:
+                    subprocess.run(my_og_delete_cmd, check = True)
+                except subprocess.CalledProcessError as bloom_e:
+                    print(bloom_e, "Warning: Did not find files and/or directories to delete", accession)
+                    sys.exit()
+                
 
 
             # ----------------------------------------------------------
@@ -245,13 +263,15 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                             line = line.strip().split("\t")
                             print(accession, "noMatch rate:", line[4])
                             if float(line[4]) > 0.2:
-                                rm_pattern = "./sra_python/" + accession + "*"
-                                my_bloom_delete_cmd =  ["rm", rm_pattern]
+                                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".*")
+                                my_bloom_delete_cmd =  ["rm"] + rm_pattern
                                 try:
                                     subprocess.run(my_bloom_delete_cmd, check = True)
+                                    print("Bloom files larger than 20% matches deleted")
                                 except subprocess.CalledProcessError as bloom_e:
                                     print(bloom_e, "Warning: Bloom files largesr than 20% matches could not be deleted", accession)
-                                print("Bloom files larger than 20% matches deleted")
+                                    continue
+                                
             
             else:
                 bloom_summary = "/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".fastq_out_summary.tsv"
@@ -261,13 +281,15 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                             line = line.strip().split("\t")
                             print(accession, "noMatch rate:", line[4])
                             if float(line[4]) > 0.2:
-                                rm_pattern = "./sra_python/" + accession + "*"
-                                my_bloom_delete_cmd =  ["rm", rm_pattern]
+                                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".*")
+                                my_bloom_delete_cmd = ["rm"] + rm_pattern
                                 try:
                                     subprocess.run(my_bloom_delete_cmd, check = True)
+                                    print("Bloom files larger than 20% matches deleted")
                                 except subprocess.CalledProcessError as bloom_e:
                                     print(bloom_e, "Warning: Bloom files largesr than 20% matches could not be deleted", accession)
-                                print("Bloom files larger than 20% matches deleted")
+                                    continue
+                                
                             
 
 
