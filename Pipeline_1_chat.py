@@ -9,7 +9,7 @@ import shutil
 from pathlib import Path
 import glob
 
-Dir = '/scratch/alpine/fhasan1@xsede.org/sra_python'
+Dir = '/scratch/alpine/fhasan1@xsede.org/C_auris'
 
 
 BLASTNucleotide = sys.argv[1]
@@ -20,6 +20,8 @@ with open(BLASTNucleotide, 'r') as BLASTN:
     j = 0
 
     for line in BLASTN:
+    
+        bloom_too_big = False
 
         if j % NumJobs == Catch:
             print(f"Numer={j}. Numjobs={NumJobs}, Catch={Catch}")
@@ -41,8 +43,8 @@ with open(BLASTNucleotide, 'r') as BLASTN:
 
             if final_contigs.is_file():
                 print("final.contigs.fa already exists")
-                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".*")
-                my_og_delete_cmd = ["rm"] + rm_pattern
+                rm_pattern_1 = glob.glob("/scratch/alpine/fhasan1@xsede.org/C_auris/" + accession + "*.*")
+                my_og_delete_cmd = ["rm"] + rm_pattern_1
                 try:
                     subprocess.run(my_og_delete_cmd, check = True)
                 except subprocess.CalledProcessError as bloom_e:
@@ -52,13 +54,12 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                 continue
             
             else:
-                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + "*")
-                my_og_delete_cmd = ["rm", "-r"] + rm_pattern
+                rm_pattern_1 = glob.glob("/scratch/alpine/fhasan1@xsede.org/C_auris/" + accession + "*")
+                my_og_delete_cmd = ["rm", "-r"] + rm_pattern_1
                 try:
                     subprocess.run(my_og_delete_cmd, check = True)
                 except subprocess.CalledProcessError as bloom_e:
                     print(bloom_e, "Warning: Did not find files and/or directories to delete", accession)
-                    sys.exit()
                 
 
 
@@ -88,7 +89,7 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                         [
                             'fasterq-dump',
                             accession,
-                            '--split-files',
+                            '--split-files', '-e', sys.argv[4],
                             '-O',
                             Output
                         ],
@@ -256,39 +257,51 @@ with open(BLASTNucleotide, 'r') as BLASTN:
             # ==========================================================
             
             if Path(pe_item).is_file():
-                bloom_summary = "/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + "_1.fastq_out_summary.tsv"
+                bloom_summary = "/scratch/alpine/fhasan1@xsede.org/C_auris/" + accession + "_1.fastq_out_summary.tsv"
                 with open(bloom_summary, "r") as bloomf:
                     for line  in bloomf:
                         if "noMatch" in line:
                             line = line.strip().split("\t")
                             print(accession, "noMatch rate:", line[4])
-                            if float(line[4]) > 0.2:
-                                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".*")
-                                my_bloom_delete_cmd =  ["rm"] + rm_pattern
+                            if float(line[4]) > 0.2 or float(line[4]) == 0:
+                                bloom_too_big = True
+                                rm_pattern_2 = glob.glob("/scratch/alpine/fhasan1@xsede.org/C_auris/" + accession + "*.*")
+                                print(rm_pattern_2)
+                                my_bloom_delete_cmd =  ["rm"] + rm_pattern_2
+                                my_sra_delete_cmd = ["rm",pe_item, item2]
                                 try:
+                                    subprocess.run(my_sra_delete_cmd, check = True)
                                     subprocess.run(my_bloom_delete_cmd, check = True)
-                                    print("Bloom files larger than 20% matches deleted")
+                                    print("Bloom files larger than 20% matches and SRA deleted")
                                 except subprocess.CalledProcessError as bloom_e:
                                     print(bloom_e, "Warning: Bloom files largesr than 20% matches could not be deleted", accession)
-                                    continue
+                                    
+                                    
+                                    
                                 
             
             else:
-                bloom_summary = "/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".fastq_out_summary.tsv"
+                bloom_summary = "/scratch/alpine/fhasan1@xsede.org/C_auris/" + accession + ".fastq_out_summary.tsv"
                 with open(bloom_summary, "r") as bloomf:
                     for line  in bloomf:
                         if "noMatch" in line:
                             line = line.strip().split("\t")
                             print(accession, "noMatch rate:", line[4])
-                            if float(line[4]) > 0.2:
-                                rm_pattern = glob.glob("/scratch/alpine/fhasan1@xsede.org/sra_python/" + accession + ".*")
-                                my_bloom_delete_cmd = ["rm"] + rm_pattern
+                            if float(line[4]) > 0.2 or float(line[4]) == 0:
+                                bloom_too_big = True
+                                rm_pattern_2 = glob.glob("/scratch/alpine/fhasan1@xsede.org/C_auris/" + accession + "*.*")
+                                print(rm_pattern_2)
+                                my_bloom_delete_cmd = ["rm"] + rm_pattern_2
+                                my_sra_delete_cmd = ["rm", se_item]
                                 try:
+                                    subprocess.run(my_sra_delete_cmd, check = True)
                                     subprocess.run(my_bloom_delete_cmd, check = True)
-                                    print("Bloom files larger than 20% matches deleted")
+                                    print("Bloom files larger than 20% matches and SRA deleted")
                                 except subprocess.CalledProcessError as bloom_e:
                                     print(bloom_e, "Warning: Bloom files largesr than 20% matches could not be deleted", accession)
-                                    continue
+            if bloom_too_big:
+                j += 1
+                continue
                                 
                             
 
@@ -329,7 +342,7 @@ with open(BLASTNucleotide, 'r') as BLASTN:
                 )
 
 
-            print("SRA deleted")
+            print("SRA deleted", j)
             
             
             # ==========================================================
