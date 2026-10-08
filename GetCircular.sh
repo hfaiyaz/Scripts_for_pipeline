@@ -16,4 +16,3 @@
 module load perl
 
 perl GetCircular.pl /pl/active/Viralogue/final_contigs/C_albicans/C_albicans_negative_contigs.fna
-

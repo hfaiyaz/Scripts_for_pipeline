@@ -5,7 +5,7 @@ use warnings;
 my$File = $ARGV[0];
 
 open(INPUT, "$File") or die "$!";
-open(OUTPUT, ">>CircularContigs.fa");
+open(OUTPUT, ">C_albicans_negative_CircularContigs.fa");
 my$Label;
 while(defined(my$line = <INPUT>)){
 	chomp($line);
